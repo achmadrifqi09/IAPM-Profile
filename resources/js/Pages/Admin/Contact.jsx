@@ -9,14 +9,14 @@ import {
     ButtonSecondary,
     ButtonPrimary,
 } from "../../Components/Button";
-import { CheckBadgeIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon } from "@heroicons/react/24/outline";
 import Modal from "../../Components/Modal";
 import { Input, InputSelect } from "../../Components/Input";
 import Swal from "sweetalert2";
 import ScreenLoader from "../../Components/Loader";
 import { contactColumns, contactOptions } from "../../Helper/presenter-data";
 import { toastSettings, confirmSetttings } from "../../Helper/PopupSettings";
-import { useFormik, Field, Form } from "formik";
+import { useFormik } from "formik";
 import { contactValidationSchema } from "../../Helper/validation-schema";
 
 const Contact = (props) => {
@@ -27,8 +27,10 @@ const Contact = (props) => {
         isUpdates: false,
         idUpdate: "",
     });
+    const [isLoading, setLoading] = useState(false);
 
     const handleOnSubmit = () => {
+        setLoading(true);
         updateProps.isUpdates
             ? Inertia.put(`/contacts/${updateProps.idUpdate}`, formik.values)
             : Inertia.post(`/contacts`, formik.values);
@@ -85,7 +87,16 @@ const Contact = (props) => {
         }
     }, [formik.values.contact_type]);
 
-    console.log(errors);
+    const handleDeleteContact = (id, contact) => {
+        Swal.fire({
+            ...confirmSetttings,
+            text: `Want to delete ${contact}`,
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Inertia.delete(`/contacts/${id}`);
+            }
+        });
+    };
 
     useEffect(() => {
         if (flash?.success) {
@@ -94,14 +105,16 @@ const Contact = (props) => {
                 icon: "success",
                 title: flash.success,
             });
+            isOpenModal && handleModal();
         } else if (Object.keys(errors).length > 0) {
             Swal.fire({
                 ...toastSettings,
                 icon: "error",
                 title: getErrorMessage(errors),
             });
+            !isOpenModal && handleModal();
         }
-        handleModal();
+        setLoading(false);
     }, [errors, flash]);
 
     const getErrorMessage = (errors) => {
@@ -119,6 +132,7 @@ const Contact = (props) => {
         <>
             <Head title="Contact" />
             <MasterLayout>
+                {isLoading && <ScreenLoader />}
                 {isOpenModal && (
                     <Modal title="Contact" handleModal={handleModal}>
                         <form onSubmit={formik.handleSubmit}>
@@ -142,12 +156,17 @@ const Contact = (props) => {
                                     inputType={inputContactProps.type}
                                 />
                             )}
-                            <ButtonPrimary
-                                buttonType="submit"
-                                action={formik.handleSubmit}
-                            >
-                                Submit
-                            </ButtonPrimary>
+                            <div className="space-x-4">
+                                <ButtonSecondary
+                                    action={handleModal}
+                                    buttonType="button"
+                                >
+                                    Cancel
+                                </ButtonSecondary>
+                                <ButtonPrimary buttonType="submit">
+                                    Submit
+                                </ButtonPrimary>
+                            </div>
                         </form>
                     </Modal>
                 )}
@@ -176,7 +195,13 @@ const Contact = (props) => {
                             <MenuItem
                                 key="edit"
                                 sx={{ fontSize: "10pt" }}
-                                onClick={() => handleUpdateAction(row.original)}
+                                onClick={() => {
+                                    handleDeleteContact(
+                                        row.original.id,
+                                        row.original.contact
+                                    );
+                                    closeMenu();
+                                }}
                             >
                                 Delete
                             </MenuItem>,

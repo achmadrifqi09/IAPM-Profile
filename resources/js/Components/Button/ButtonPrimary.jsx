@@ -13,7 +13,7 @@ const ButtonPrimary = (props) => {
                 className="text-gray-900 bg-amber-500 px-4 py-2 rounded-lg disabled:opacity-80"
                 type={buttonType}
                 disabled={isDisable}
-                onClick={handleClickButton}
+                onClick={action && handleClickButton}
             >
                 {children}
             </button>
